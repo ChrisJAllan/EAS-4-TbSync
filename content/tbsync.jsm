@@ -288,6 +288,11 @@ var tbSync = {
                 tbSync.dump("Check4Lightning","Failed!");
             }
         }
+        
+        if (tbSync.cardbook) {
+            Components.utils.import("chrome://cardbook/content/cardbookRepository.js");
+            tbSync.includeJS("chrome://cardbook/content/cardbookUtils.js");
+        }
 
         //check and activate installed providers
         yield tbSync.checkInstalledProvider(addons);

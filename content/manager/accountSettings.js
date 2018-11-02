@@ -18,15 +18,13 @@ var tbSyncAccountSettings = {
     provider: null,
     settings: null,
     fixedSettings: null,
-    viewFolderPane: null,
     updateTimer: Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer),
 
     updateFolderListObserver: {
         observe: function (aSubject, aTopic, aData) {
             //only run if is request for this account and main frame is visible
             let account = aData;            
-            if (account == tbSyncAccountSettings.account && !document.getElementById('tbsync.accountsettings.frame').hidden) {
-                //make sure, folderlist is visible, otherwise our updates will be discarded (may cause errors)
+            if (account == tbSyncAccountSettings.accountt && !document.getElementById('tbsync.accountsettings.frame').hidden) {
                 tbSyncAccountSettings.updateGui();
                 tbSyncAccountSettings.updateFolderList();
             }
@@ -77,8 +75,7 @@ var tbSyncAccountSettings = {
     // tbsync.accountsettings.label. + x
     // tbsync.accountsettings.label.config
     // tbsync.accountsettings.unlock
-    // tbsync.accountsettings.group.options
-    // tbsync.accountsettings.group.server
+
     // tbsync.accountsettings.group.folders
     // tbsync.accountsettings.folderlist
     
@@ -96,12 +93,11 @@ var tbSyncAccountSettings = {
         tbSyncAccountSettings.settings = tbSync[tbSyncAccountSettings.provider].ui.getAccountStorageFields();
         tbSyncAccountSettings.alwaysUnlockedSettings = tbSync[tbSyncAccountSettings.provider].ui.getAlwaysUnlockedSettings();
         //also get settings, which might be changed during sync, so need to be updated more often
-        tbSyncAccountSettings.viewFolderPane = "on";
     
         tbSync.prepareSyncDataObj(tbSyncAccountSettings.account);
         tbSyncAccountSettings.loadSettings();
         
-        //done, folderlist must be updated while visible
+        //done, show settings tab
         document.getElementById('tbsync.accountsettings.frame').hidden = false;	    
         tbSyncAccountSettings.updateFolderList();        
     },
@@ -169,13 +165,10 @@ var tbSyncAccountSettings = {
         let isConnected = tbSync.isConnected(tbSyncAccountSettings.account);
         let isEnabled = tbSync.isEnabled(tbSyncAccountSettings.account);      
         let isSyncing = tbSync.isSyncing(tbSyncAccountSettings.account);
-        let hideOptions = isConnected && tbSyncAccountSettings.viewFolderPane == "on";
         
         //which box is to be displayed? options or folders
         document.getElementById("tbsync.accountsettings.unlock").hidden = (isConnected || tbSyncAccountSettings.servertype == "custom"); 
-        document.getElementById("tbsync.accountsettings.group.options").hidden = hideOptions;
-        document.getElementById("tbsync.accountsettings.group.server").hidden = hideOptions;
-        document.getElementById("tbsync.accountsettings.group.folders").hidden = !hideOptions;
+        document.getElementById("tbsync.accountsettings.group.folders").hidden = !isConnected;
 
         //disable settings if connected or syncing
         let items = document.getElementsByClassName("lockable");
@@ -196,24 +189,17 @@ var tbSyncAccountSettings = {
             //we are syncing, either still connection or indeed syncing
             if (isConnected) document.getElementById('tbsync.accountsettings.syncbtn').label = tbSync.getLocalizedMessage("button.syncing");
             else document.getElementById('tbsync.accountsettings.syncbtn').label = tbSync.getLocalizedMessage("button.connecting");            
-
-            //do not display slider while syncing
-            document.getElementById('tbsync.accountsettings.slider').hidden = true;
         } else {
             if (isConnected) document.getElementById('tbsync.accountsettings.syncbtn').label = tbSync.getLocalizedMessage("button.syncthis");            
             else document.getElementById('tbsync.accountsettings.syncbtn').label = tbSync.getLocalizedMessage("button.tryagain");            
-
-            //do not display slider if not connected
-            document.getElementById('tbsync.accountsettings.slider').hidden = !isConnected;
-            document.getElementById('tbsync.accountsettings.slider').src = "chrome://tbsync/skin/slider-"+tbSyncAccountSettings.viewFolderPane+".png";        
         }
         //disable enable/disable btn, sync btn and folderlist during sync, also hide sync button if disabled
         document.getElementById('tbsync.accountsettings.enablebtn').disabled = isSyncing;
         document.getElementById('tbsync.accountsettings.folderlist').disabled = isSyncing;
         document.getElementById('tbsync.accountsettings.syncbtn').disabled = isSyncing;
         
-        document.getElementById('tbsync.accountsettings.syncbtn').hidden = !(isEnabled && tbSyncAccountSettings.viewFolderPane == "on");
-        document.getElementById('tbsync.accountsettings.enablebtn').hidden = (isEnabled && tbSyncAccountSettings.viewFolderPane == "on");
+        document.getElementById('tbsync.accountsettings.syncbtn').hidden = !isEnabled;
+        document.getElementById('tbsync.accountsettings.enablebtn').hidden = isEnabled;
 
         if (isEnabled) document.getElementById('tbsync.accountsettings.enablebtn').label = tbSync.getLocalizedMessage("button.disableAndEdit");
         else document.getElementById('tbsync.accountsettings.enablebtn').label = tbSync.getLocalizedMessage("button.enableAndConnect");
@@ -234,7 +220,6 @@ var tbSyncAccountSettings = {
         let syncdata = tbSync.getSyncData(tbSyncAccountSettings.account);
         
         if (isSyncing) {
-            tbSyncAccountSettings.viewFolderPane = "on";
             let accounts = tbSync.db.getAccounts().data;
             let target = "";
 
@@ -287,7 +272,7 @@ var tbSyncAccountSettings = {
 
     updateFolderList: function () {        
         //do not upate, if not visible (may cause errors)
-        if ( document.getElementById('tbsync.accountsettings.frame').hidden || document.getElementById("tbsync.accountsettings.group.folders").hidden) 
+        if (document.getElementById("tbsync.accountsettings.group.folders").hidden) 
             return;
         
         //clear folderlist
@@ -337,12 +322,6 @@ var tbSyncAccountSettings = {
             tbSync.db.setAccountSetting(tbSyncAccountSettings.account, "servertype", "custom");
             tbSyncAccountSettings.loadSettings();
         }
-    },
-
-    switchFoldersAndConfigView: function () {
-        if (tbSyncAccountSettings.viewFolderPane == "on") tbSyncAccountSettings.viewFolderPane = "off"; 
-        else tbSyncAccountSettings.viewFolderPane = "on";
-        tbSyncAccountSettings.updateGui();
     },
     
     toggleEnableState: function () {
